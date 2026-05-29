@@ -6,13 +6,17 @@ import { TransferRequest } from "../types/transfer";
 import { getAccountBalance } from "../services/transaction.service";
 import {  acquireLock,releaseLock,} from "../services/lock.service";
 import {  publishTransactionEvent  } from "../services/stream.service";
+import { idempotency } from "../middleware/idempotency.middleware";
+import { blacklistCheck } from "../middleware/blacklist.middleware";
 
 
 const router = Router();
 
 router.post(
-  "/transfer",
-  async (req: Request, res: Response) => {
+    "/transfer",
+    idempotency,
+    blacklistCheck,
+    async (req, res) => {
     const body = req.body as TransferRequest;
 
     const client = await pool.connect();

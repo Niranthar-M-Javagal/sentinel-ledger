@@ -5,6 +5,9 @@ import {    testDatabase    } from "./config/database";
 import {    connectRedis    } from "./config/redis";
 import {    idempotency     } from "./middleware/idempotency.middleware";
 import {    blacklistCheck    } from "./middleware/blacklist.middleware";
+import accountRouter from "./routes/account.route";
+import fraudRouter from "./routes/fraud.route";
+import adminRouter from "./routes/admin.route";
 
 
 dotenv.config();
@@ -13,11 +16,14 @@ const app = express();
 
 app.use(express.json());
 
-app.use(idempotency);
-
-app.use(blacklistCheck);
+app.use(accountRouter);
 
 app.use(transferRouter);
+
+app.use(fraudRouter);
+
+app.use(adminRouter);
+
 
 app.get(
     "/health",

@@ -54,3 +54,15 @@ ON ledger_entries(account_id);
 
 CREATE INDEX idx_transaction
 ON ledger_entries(transaction_id);
+
+CREATE TABLE fraud_events (
+    id UUID PRIMARY KEY,
+
+    account_id UUID NOT NULL,
+
+    transaction_count INTEGER NOT NULL,
+
+    reason VARCHAR(255) NOT NULL,
+
+    created_at TIMESTAMP DEFAULT NOW()
+);

@@ -1,7 +1,18 @@
 import asyncio
 import time
-
+import psycopg2
+import uuid
 from redis.asyncio import Redis
+
+pg_conn = psycopg2.connect(
+    host="localhost",
+    database="sentinel_ledger",
+    user="postgres",
+    password="postgres123",
+    port=5432
+)
+
+pg_conn.autocommit = True
 
 redis = Redis(
     host="localhost",
@@ -14,6 +25,38 @@ STREAM_NAME = "transactions-stream"
 WINDOW_SECONDS = 10
 
 MAX_TRANSACTIONS = 5
+
+
+def save_fraud_event(
+    account_id,
+    transaction_count
+):
+    cursor = pg_conn.cursor()
+
+    cursor.execute(
+        """
+        INSERT INTO fraud_events (
+            id,
+            account_id,
+            transaction_count,
+            reason
+        )
+        VALUES (
+            %s,
+            %s,
+            %s,
+            %s
+        )
+        """,
+        (
+            str(uuid.uuid4()),
+            account_id,
+            transaction_count,
+            "Velocity threshold exceeded"
+        )
+    )
+
+    cursor.close()
 
 
 async def process_transaction(data):
@@ -49,10 +92,22 @@ async def process_transaction(data):
     print("Account:", from_account)
     print("Transactions in window:", count)
 
-    if count > MAX_TRANSACTIONS:
+    blacklist_key = (
+        f"blacklist:{from_account}"
+    )
 
-        blacklist_key = (
-            f"blacklist:{from_account}"
+    already_blacklisted = await redis.exists(
+        blacklist_key
+    )
+
+    if (
+        count > MAX_TRANSACTIONS
+        and not already_blacklisted
+    ):
+
+        save_fraud_event(
+            from_account,
+            count
         )
 
         await redis.set(
@@ -66,7 +121,8 @@ async def process_transaction(data):
 
 async def consume_transactions():
 
-    last_id = "0"
+    # Only consume NEW events
+    last_id = "$"
 
     print("Fraud Worker Started")
 
