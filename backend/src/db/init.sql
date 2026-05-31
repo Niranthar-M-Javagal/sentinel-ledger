@@ -66,3 +66,8 @@ CREATE TABLE fraud_events (
 
     created_at TIMESTAMP DEFAULT NOW()
 );
+
+CREATE TABLE blacklisted_accounts (
+    account_id UUID PRIMARY KEY,
+    blacklisted_at TIMESTAMP DEFAULT NOW()
+);

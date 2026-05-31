@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SentinelLedger Socket Test</title>
+</head>
+<body>
+
+<h1>SentinelLedger Events</h1>
+
+<pre id="events"></pre>
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+<script>
+
+const socket =
+    io("http://localhost:3000");
+
+const events =
+    document.getElementById("events");
+
+function log(data) {
+    events.textContent +=
+        JSON.stringify(
+            data,
+            null,
+            2
+        ) + "\n\n";
+}
+
+socket.on(
+    "connect",
+    () => {
+        log({
+            status: "CONNECTED",
+            id: socket.id
+        });
+    }
+);
+
+socket.on(
+    "transaction_created",
+    (data) => {
+        log({
+            event:
+                "transaction_created",
+            data
+        });
+    }
+);
+
+socket.on(
+    "fraud_alert",
+    (data) => {
+        log({
+            event:
+                "fraud_alert",
+            data
+        });
+    }
+);
+
+socket.on(
+    "blacklist_updated",
+    (data) => {
+        log({
+            event:
+                "blacklist_updated",
+            data
+        });
+    }
+);
+
+</script>
+
+</body>
+</html>

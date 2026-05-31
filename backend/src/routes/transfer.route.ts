@@ -8,7 +8,7 @@ import {  acquireLock,releaseLock,} from "../services/lock.service";
 import {  publishTransactionEvent  } from "../services/stream.service";
 import { idempotency } from "../middleware/idempotency.middleware";
 import { blacklistCheck } from "../middleware/blacklist.middleware";
-
+import {    publishTransactionCreated   } from "../services/event-bus.service";
 
 const router = Router();
 
@@ -132,6 +132,15 @@ router.post(
         body.toAccount,
         body.amount
       );
+
+      publishTransactionCreated({
+        transactionId: txId,
+        fromAccount: body.fromAccount,
+        toAccount: body.toAccount,
+        amount: body.amount,
+        eventType: "TRANSFER_CREATED",
+        createdAt: new Date().toISOString()
+      });
 
       return res.status(200).json({
         transactionId: txId,
