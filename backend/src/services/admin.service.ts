@@ -47,10 +47,11 @@ export async function unblacklistAccount(
         [accountId]
     );
 
-    publishBlacklistChanged({
+    await publishBlacklistChanged({
         accountId,
         action: "UNBLACKLISTED",
-        timestamp: Date.now()
+        createdAt:
+            new Date().toISOString()
     });
 }
 

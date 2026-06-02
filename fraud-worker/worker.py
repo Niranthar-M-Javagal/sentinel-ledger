@@ -3,6 +3,7 @@ import time
 import psycopg2
 import uuid
 from redis.asyncio import Redis
+import json
 
 pg_conn = psycopg2.connect(
     host="localhost",
@@ -113,6 +114,16 @@ async def process_transaction(data):
         await redis.set(
             blacklist_key,
             "BLOCKED"
+        )
+        
+        await redis.publish(
+            "fraud-alerts",
+            json.dumps({
+                "account_id": from_account,
+                "transaction_count": count,
+                "reason": "Velocity threshold exceeded",
+                "created_at": time.time()
+            })
         )
 
         print("\n🚨 ACCOUNT BLACKLISTED 🚨")

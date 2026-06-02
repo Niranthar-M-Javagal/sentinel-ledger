@@ -70,3 +70,52 @@ export async function getRecentBlacklistEvents() {
 
     return events.map((event) => JSON.parse(event));
 }
+
+export async function getActivityEvents() {
+
+    const transactions =
+        await getRecentTransactions();
+
+    const fraudEvents =
+        await getRecentFraudEvents();
+
+    const blacklistEvents =
+        await getRecentBlacklistEvents();
+
+    const activity = [
+
+        ...transactions.map(event => ({
+            type: "TRANSFER_CREATED",
+            timestamp:
+                event.createdAt,
+            data: event
+        })),
+
+        ...fraudEvents.map(event => ({
+            type: "FRAUD_ALERT",
+            timestamp:
+                event.created_at,
+            data: event
+        })),
+
+        ...blacklistEvents.map(event => ({
+            type: "BLACKLIST_UPDATED",
+            timestamp:
+                event.createdAt,
+            data: event
+        }))
+    ];
+
+    activity.sort(
+        (a, b) =>
+            new Date(
+                b.timestamp
+            ).getTime()
+            -
+            new Date(
+                a.timestamp
+            ).getTime()
+    );
+
+    return activity;
+}

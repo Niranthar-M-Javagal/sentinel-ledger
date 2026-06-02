@@ -3,10 +3,22 @@ import { Router } from "express";
 import {
     getRecentTransactions,
     getRecentFraudEvents,
-    getRecentBlacklistEvents
+    getRecentBlacklistEvents,
+    getActivityEvents
 } from "../services/event-store.service";
 
 const router = Router();
+
+router.get(
+    "/activity",
+    async (_, res) => {
+
+        const events =
+            await getActivityEvents();
+
+        res.json(events);
+    }
+);
 
 router.get(
     "/recent-transactions",

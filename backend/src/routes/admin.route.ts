@@ -20,6 +20,23 @@ router.get(
 );
 
 router.post(
+    "/admin/unblacklist",
+    async (req, res) => {
+
+        const { accountId } =
+            req.body;
+
+        await unblacklistAccount(
+            accountId
+        );
+
+        res.json({
+            success: true
+        });
+    }
+);
+
+router.post(
     "/admin/blacklist/:accountId",
     async (req, res) => {
 

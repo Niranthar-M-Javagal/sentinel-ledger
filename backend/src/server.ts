@@ -14,6 +14,7 @@ import eventRoutes from "./routes/event.route";
 import dashboardRoutes from "./routes/dashboard.route";
 import { restoreBlacklistCache } from "./services/blacklist-recovery.service";
 import cors from "cors";
+import {startFraudSubscriber} from "./services/fraud-subscriber.service";
 
 import path from "path";
 
@@ -79,6 +80,7 @@ const PORT =Number(process.env.PORT) || 3000;
 
 async function start(){
     await connectRedis();
+    await startFraudSubscriber();
     await restoreBlacklistCache();
     app.listen(PORT, () => {
         console.log(`Server running on ${PORT}`);
