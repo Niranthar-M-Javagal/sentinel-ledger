@@ -3,7 +3,8 @@ import express from "express";
 import {
     blacklistAccount,
     unblacklistAccount,
-    getBlacklistedAccounts
+    getBlacklistedAccounts,
+    fundAccount
 } from "../services/admin.service";
 
 const router = express.Router();
@@ -14,6 +15,8 @@ router.get(
 
         const accounts =
             await getBlacklistedAccounts();
+
+        console.log(accounts);
 
         return res.json(accounts);
     }
@@ -62,6 +65,28 @@ router.delete(
         return res.json({
             message:
                 "Account unblacklisted"
+        });
+    }
+);
+
+router.post(
+    "/admin/fund-account",
+    async (req, res) => {
+
+        const {
+            accountId,
+            amount
+        } = req.body;
+
+        const result =
+            await fundAccount(
+                accountId,
+                amount
+            );
+
+        return res.json({
+            success: true,
+            ...result
         });
     }
 );

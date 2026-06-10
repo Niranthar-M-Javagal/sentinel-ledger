@@ -71,3 +71,19 @@ CREATE TABLE blacklisted_accounts (
     account_id UUID PRIMARY KEY,
     blacklisted_at TIMESTAMP DEFAULT NOW()
 );
+
+CREATE TABLE blacklist_events (
+    id UUID PRIMARY KEY,
+    account_id UUID NOT NULL,
+    action VARCHAR(20) NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+INSERT INTO accounts(
+    id,
+    owner_name
+)
+VALUES(
+    '00000000-0000-0000-0000-000000000001',
+    'SYSTEM'
+) ON CONFLICT(id) DO NOTHING;

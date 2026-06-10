@@ -4,6 +4,6 @@ WORKDIR /app
 
 COPY . .
 
-RUN pip install redis asyncio
+RUN pip install redis psycopg2-binary
 
 CMD ["python", "worker.py"]

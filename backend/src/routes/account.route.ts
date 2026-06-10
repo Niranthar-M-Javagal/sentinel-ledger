@@ -4,6 +4,8 @@ import {
     createAccount,
     getAccountById,
     getAllAccounts,
+    getAccountsWithStats,
+    getAccountTimeline
 } from "../services/account.service";
 
 import {
@@ -38,6 +40,17 @@ router.post("/accounts", async (req, res) => {
         });
     }
 });
+
+router.get(
+    "/accounts/stats",
+    async (_req, res) => {
+
+        const accounts =
+            await getAccountsWithStats();
+
+        return res.json(accounts);
+    }
+);
 
 router.get("/accounts/:id/transactions", async (req, res) => {
 
@@ -74,6 +87,21 @@ router.get("/accounts/:id/transactions", async (req, res) => {
         });
     }
 });
+
+router.get(
+    "/accounts/:id/timeline",
+    async (req, res) => {
+
+        const timeline =
+            await getAccountTimeline(
+                req.params.id
+            );
+
+        return res.json(
+            timeline
+        );
+    }
+);
 
 router.get("/accounts/:id", async (req, res) => {
 
@@ -147,7 +175,6 @@ router.get("/accounts", async (_req, res) => {
         });
     }
 });
-
 
 
 export default router;

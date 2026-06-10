@@ -4,9 +4,17 @@ import {
     publishFraudDetected
 } from "./event-bus.service";
 
+import {
+    blacklistAccount
+} from "./admin.service";
+
+import {
+    fraudCounter
+} from "./metrics.service";
+
 const subscriber =
     createClient({
-        url: "redis://localhost:6379"
+        url:process.env.REDIS_URL
     });
 
 export async function
@@ -18,17 +26,23 @@ startFraudSubscriber() {
         "fraud-alerts",
         async (message) => {
 
-            const payload =
+            const fraudEvent =
                 JSON.parse(message);
 
             console.log(
                 "Fraud Alert Received:",
-                payload
+                fraudEvent
+            );
+
+            await blacklistAccount(
+                fraudEvent.account_id
             );
 
             await publishFraudDetected(
-                payload
+                fraudEvent
             );
+
+            fraudCounter.inc();
         }
     );
 }

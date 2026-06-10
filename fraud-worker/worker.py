@@ -6,7 +6,7 @@ from redis.asyncio import Redis
 import json
 
 pg_conn = psycopg2.connect(
-    host="localhost",
+    host="postgres",
     database="sentinel_ledger",
     user="postgres",
     password="postgres123",
@@ -16,15 +16,17 @@ pg_conn = psycopg2.connect(
 pg_conn.autocommit = True
 
 redis = Redis(
-    host="localhost",
+    host="redis",
     port=6379,
-    decode_responses=True
+    decode_responses=True,
+    socket_timeout=None
 )
 
 STREAM_NAME = "transactions-stream"
+GROUP_NAME = "fraud-group"
+CONSUMER_NAME = "worker-1"
 
 WINDOW_SECONDS = 10
-
 MAX_TRANSACTIONS = 5
 
 
@@ -63,7 +65,6 @@ def save_fraud_event(
 async def process_transaction(data):
 
     from_account = data["fromAccount"]
-
     transaction_id = data["transactionId"]
 
     timestamp = int(time.time())
@@ -115,7 +116,7 @@ async def process_transaction(data):
             blacklist_key,
             "BLOCKED"
         )
-        
+
         await redis.publish(
             "fraud-alerts",
             json.dumps({
@@ -132,30 +133,70 @@ async def process_transaction(data):
 
 async def consume_transactions():
 
-    # Only consume NEW events
-    last_id = "$"
-
     print("Fraud Worker Started")
+    print(
+        f"Consumer Group: {GROUP_NAME}"
+    )
+    print(
+        f"Consumer: {CONSUMER_NAME}"
+    )
 
     while True:
 
-        response = await redis.xread(
-            {STREAM_NAME: last_id},
-            block=0
-        )
+        try:
 
-        for stream, messages in response:
+            await redis.set(
+                "worker:heartbeat",
+                int(time.time()),
+                ex=30
+            )
 
-            for message_id, data in messages:
+            response = await redis.xreadgroup(
+                groupname=GROUP_NAME,
+                consumername=CONSUMER_NAME,
+                streams={
+                    STREAM_NAME: ">"
+                },
+                count=10,
+                block=5000
+            )
 
-                print("\n=== EVENT RECEIVED ===")
-                print("Message ID:", message_id)
+            if not response:
+                continue
 
-                await process_transaction(
-                    data
-                )
+            for stream, messages in response:
 
-                last_id = message_id
+                for message_id, data in messages:
+
+                    print(
+                        "\n=== EVENT RECEIVED ==="
+                    )
+                    print(
+                        "Message ID:",
+                        message_id
+                    )
+
+                    await process_transaction(
+                        data
+                    )
+
+                    await redis.xack(
+                        STREAM_NAME,
+                        GROUP_NAME,
+                        message_id
+                    )
+
+                    print(
+                        f"ACKED: {message_id}"
+                    )
+
+        except Exception as e:
+
+            print(
+                f"Worker Error: {e}"
+            )
+
+            await asyncio.sleep(2)
 
 
 asyncio.run(

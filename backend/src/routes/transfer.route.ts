@@ -9,7 +9,8 @@ import {  publishTransactionEvent  } from "../services/stream.service";
 import { idempotency } from "../middleware/idempotency.middleware";
 import { blacklistCheck } from "../middleware/blacklist.middleware";
 import {    publishTransactionCreated   } from "../services/event-bus.service";
-
+import {transactionCounter} from "../services/metrics.service";
+import {transferDuration} from "../services/metrics.service";
 const router = Router();
 
 router.post(
@@ -34,6 +35,7 @@ router.post(
     }
 
     try {
+      const endTimer = transferDuration.startTimer();
       await client.query("BEGIN");
 
       const lockQuery = `
@@ -126,6 +128,8 @@ router.post(
         "COMMIT"
       );
 
+      transactionCounter.inc();
+
       await publishTransactionEvent(
         txId,
         body.fromAccount,
@@ -142,6 +146,8 @@ router.post(
         createdAt: new Date().toISOString()
       });
 
+      endTimer();
+    
       return res.status(200).json({
         transactionId: txId,
       });

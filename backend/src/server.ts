@@ -11,10 +11,13 @@ import adminRouter from "./routes/admin.route";
 import http from "http";
 import { initializeSocket } from "./socket/socket";
 import eventRoutes from "./routes/event.route";
+import healthRoutes from "./routes/health.route" 
+import operationsRoutes from "./routes/operations.route";
 import dashboardRoutes from "./routes/dashboard.route";
 import { restoreBlacklistCache } from "./services/blacklist-recovery.service";
 import cors from "cors";
 import {startFraudSubscriber} from "./services/fraud-subscriber.service";
+import metricsRouter from "./routes/metrics.route";
 
 import path from "path";
 
@@ -48,12 +51,21 @@ app.use(transferRouter);
 
 app.use(fraudRouter);
 
+app.use(metricsRouter);
+
 app.use("/events", eventRoutes);
 
 app.use("/dashboard",dashboardRoutes);
 
+app.use("/operations",operationsRoutes);
+
 app.use(adminRouter);
 
+console.log(
+    "Admin routes loaded"
+);
+
+app.use("/health", healthRoutes);
 
 app.get(
     "/health",
@@ -76,7 +88,7 @@ app.get(
     }
 );
 
-const PORT =Number(process.env.PORT) || 3000;
+const PORT =Number(process.env.PORT);
 
 async function start(){
     await connectRedis();
