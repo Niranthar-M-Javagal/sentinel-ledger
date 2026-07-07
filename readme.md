@@ -1,392 +1,383 @@
 # SentinelLedger
 
-A distributed fintech platform built to demonstrate real-world backend engineering concepts including event-driven architecture, double-entry accounting, fraud detection, distributed locking, Redis Streams, consumer groups, observability, and real-time monitoring.
+Distributed financial ledger system built with Node.js, TypeScript, PostgreSQL, Redis, and Python.
 
-## Overview
-
-SentinelLedger is intentionally designed as a distributed systems project rather than a CRUD banking application.
-
-The platform simulates a modern financial transaction processing system with:
-
-* Immutable double-entry ledger
-* Event-driven transaction processing
-* Fraud detection engine
-* Automatic account blacklisting
-* Redis Streams and Consumer Groups
-* Distributed locking
-* Idempotent transaction processing
-* Real-time dashboard updates
-* Prometheus monitoring
-* Grafana observability
-* Dockerized infrastructure
+SentinelLedger is a backend-focused distributed systems project that simulates core infrastructure used in modern fintech platforms, including immutable double-entry accounting, concurrency-safe transfers, distributed locking, idempotent APIs, async fraud detection, and Redis Streams event processing.
 
 ---
 
-## Architecture
+# Features
+
+## Financial Ledger Engine
+
+* Immutable double-entry ledger architecture
+* ACID-safe PostgreSQL transactions
+* Dynamic balance computation
+* Row-level locking using `SELECT ... FOR UPDATE`
+* Transaction integrity and auditability
+
+## Distributed Systems Features
+
+* Redis distributed mutex locking
+* API idempotency protection
+* Redis Streams event pipeline
+* Async event-driven fraud analytics
+* Sliding-window velocity detection
+* Redis-based blacklist circuit breaker
+
+## Fraud Detection Pipeline
+
+* Python async worker
+* Redis Sorted Set velocity tracking
+* Real-time transfer monitoring
+* Automatic account blacklisting after suspicious activity
+
+---
+
+# Architecture
 
 ```text
-React + TypeScript Frontend
-            │
-            ▼
-Node.js + Express + TypeScript
-            │
- ┌──────────┼──────────┐
- ▼          ▼          ▼
-Postgres   Redis    Socket.IO
-            │
-            ├─ Distributed Locks
-            ├─ Idempotency
-            ├─ Blacklist Cache
-            ├─ Redis Streams
-            ├─ Consumer Groups
-            ├─ Pub/Sub
-            └─ Worker Heartbeat
-                    │
-                    ▼
-          Python Fraud Worker
-                    │
-                    ▼
-             Fraud Events
-                    │
-                    ▼
-          Automatic Blacklisting
-                    │
-                    ▼
-             Live Dashboard
-
-Prometheus
-    │
-    ▼
-Grafana
+                ┌──────────────────┐
+                │      Client      │
+                └────────┬─────────┘
+                         │
+                         ▼
+                ┌──────────────────┐
+                │   Express API    │
+                │  Transaction API │
+                └────────┬─────────┘
+                         │
+        ┌────────────────┼────────────────┐
+        │                │                │
+        ▼                ▼                ▼
+┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+│ Redis Locks  │ │ Idempotency  │ │ Blacklisting │
+└──────┬───────┘ └──────────────┘ └──────────────┘
+       │
+       ▼
+┌──────────────────────────────┐
+│ PostgreSQL ACID Transaction  │
+│  - transactions              │
+│  - ledger_entries            │
+└──────────────┬───────────────┘
+               │
+               ▼
+      ┌─────────────────┐
+      │ Redis Streams   │
+      └────────┬────────┘
+               │
+               ▼
+      ┌─────────────────┐
+      │ Python Fraud    │
+      │ Detection Worker│
+      └────────┬────────┘
+               │
+               ▼
+      ┌─────────────────┐
+      │ Account         │
+      │ Blacklisting    │
+      └─────────────────┘
 ```
 
 ---
 
-## Tech Stack
+# Tech Stack
 
-### Backend
+## Backend
 
 * Node.js
-* Express
 * TypeScript
+* Express.js
+
+## Database
+
 * PostgreSQL
+
+## Distributed Coordination
+
 * Redis
-* Socket.IO
-
-### Fraud Processing
-
-* Python
 * Redis Streams
-* Redis Consumer Groups
+* Redis Sorted Sets
 
-### Frontend
+## Fraud Analytics
 
-* React
-* TypeScript
-
-### Observability
-
-* Prometheus
-* Grafana
-
-### Infrastructure
-
-* Docker
-* Docker Compose
+* Python asyncio
 
 ---
 
-## Core Features
-
-### Double-Entry Accounting
-
-Every transaction creates matching debit and credit ledger entries.
-
-Benefits:
-
-* Immutable ledger
-* Auditability
-* Accurate balance reconstruction
-* No stored account balances
-
-Balances are derived directly from ledger entries.
-
----
-
-### Distributed Locking
-
-Redis-based distributed locks prevent concurrent transaction corruption.
+# Project Structure
 
 ```text
-lock:<accountId>
+SentinelLedger/
+│
+├── transaction-engine/
+│   ├── src/
+│   │   ├── config/
+│   │   ├── middleware/
+│   │   ├── routes/
+│   │   ├── services/
+│   │   ├── types/
+│   │   └── server.ts
+│   │
+│   └── package.json
+│
+├── fraud-worker/
+│   └── worker.py
+│
+└── infra/
 ```
 
 ---
 
-### Idempotency Protection
+# Core Design Principles
 
-Transfers require an idempotency key.
+## Immutable Ledger
+
+Balances are never stored directly.
+
+Instead, balances are computed dynamically from immutable ledger entries:
+
+```sql
+SUM(
+  CASE
+    WHEN entry_type='CREDIT'
+    THEN amount
+    ELSE -amount
+  END
+)
+```
+
+This ensures:
+
+* auditability
+* traceability
+* transactional correctness
+* financial consistency
+
+---
+
+# API Endpoints
+
+## Health Check
+
+### GET `/health`
+
+Response:
+
+```json
+{
+  "status": "healthy"
+}
+```
+
+---
+
+## Transfer Funds
+
+### POST `/transfer`
+
+Headers:
 
 ```http
-X-Idempotency-Key
+X-Idempotency-Key: unique-request-id
 ```
 
-This prevents duplicate transaction execution caused by retries or network failures.
+Request Body:
+
+```json
+{
+  "fromAccount": "uuid",
+  "toAccount": "uuid",
+  "amount": 100
+}
+```
+
+Success Response:
+
+```json
+{
+  "transactionId": "uuid"
+}
+```
+
+Possible Error Responses:
+
+```json
+{
+  "error": "Missing X-Idempotency-Key"
+}
+```
+
+```json
+{
+  "error": "Duplicate Request"
+}
+```
+
+```json
+{
+  "error": "Insufficient balance"
+}
+```
+
+```json
+{
+  "error": "Account Blacklisted"
+}
+```
 
 ---
 
-### Event-Driven Processing
-
-Transfers are published into Redis Streams.
+# Transaction Flow
 
 ```text
-transactions-stream
-```
-
-Transactions are asynchronously consumed by fraud detection workers.
-
----
-
-### Consumer Groups
-
-Fraud workers process transactions using Redis Consumer Groups.
-
-```text
-Consumer Group: fraud-group
-Consumer: worker-1
-```
-
-Benefits:
-
-* Horizontal scaling
-* Load distribution
-* Reliable message processing
-* Pending message tracking
-
----
-
-### Fraud Detection Engine
-
-A dedicated Python worker continuously monitors transaction activity.
-
-Current rule:
-
-```text
-More than 5 transfers
-within 10 seconds
-```
-
-When suspicious activity is detected:
-
-```text
-Transaction
-    ↓
-Fraud Detection
-    ↓
-Fraud Event
-    ↓
-Automatic Blacklisting
-    ↓
-Dashboard Notification
+Acquire Redis Lock
+        ↓
+BEGIN PostgreSQL Transaction
+        ↓
+SELECT ... FOR UPDATE
+        ↓
+Compute Account Balance
+        ↓
+Validate Funds
+        ↓
+Insert Transaction Record
+        ↓
+Insert Ledger Entries
+        ↓
+COMMIT
+        ↓
+Publish Redis Stream Event
+        ↓
+Fraud Detection Worker Consumes Event
 ```
 
 ---
 
-### Automatic Blacklisting
+# Fraud Detection Logic
 
-Fraudulent accounts are automatically restricted from performing further transactions.
+The Python worker continuously consumes Redis Stream events.
 
-```text
-blacklist:<accountId>
-```
+Fraud detection rules:
 
-Blacklisting events are persisted and broadcast to the dashboard.
+* Track transfers per account
+* Maintain 10-second sliding window
+* If transaction count exceeds threshold:
 
----
+  * automatically blacklist account
 
-### Real-Time Monitoring
-
-Socket.IO provides live updates for:
-
-* Transactions
-* Fraud events
-* Blacklist events
-* Activity feed
+Redis Sorted Sets are used for velocity analytics.
 
 ---
 
-### Observability
+# Running Locally
 
-Prometheus metrics include:
-
-```text
-sentinel_transactions_total
-sentinel_fraud_events_total
-sentinel_blacklisted_accounts
-sentinel_transfer_duration_seconds
-sentinel_funding_total
-```
-
-Grafana dashboards visualize:
-
-* System health
-* Fraud activity
-* Transaction volume
-* Operational metrics
-
----
-
-## API Endpoints
-
-### Accounts
-
-```http
-POST /accounts
-GET /accounts
-GET /accounts/:id
-GET /accounts/:id/balance
-GET /accounts/:id/transactions
-GET /accounts/:id/timeline
-GET /accounts/stats
-```
-
-### Transfers
-
-```http
-POST /transfer
-```
-
-### Admin
-
-```http
-POST /admin/fund-account
-POST /admin/blacklist
-POST /admin/unblacklist
-GET /admin/blacklist
-```
-
-### Fraud
-
-```http
-GET /fraud-events
-```
-
-### Dashboard
-
-```http
-GET /dashboard/metrics
-```
-
-### Operations
-
-```http
-GET /operations/metrics
-```
-
-### Events
-
-```http
-GET /events/recent-transactions
-GET /events/recent-fraud
-GET /events/recent-blacklist
-GET /events/activity
-```
-
-### Metrics
-
-```http
-GET /metrics
-```
-
----
-
-## Running the Project
-
-### Clone Repository
+## 1. Clone Repository
 
 ```bash
-git clone https://github.com/your-username/SentinelLedger.git
-cd SentinelLedger
+git clone https://github.com/Niranthar-M-Javagal/sentinel-ledger.git
 ```
 
-### Start Services
+---
+
+## 2. Start PostgreSQL
+
+Create database:
+
+```sql
+CREATE DATABASE sentinel_ledger;
+```
+
+---
+
+## 3. Start Redis
+
+Default Redis URL:
+
+```text
+redis://localhost:6379
+```
+
+---
+
+## 4. Configure Environment Variables
+
+### transaction-engine/.env
+
+```env
+PORT=5000
+
+DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/sentinel_ledger
+
+REDIS_URL=redis://localhost:6379
+```
+
+### fraud-worker/.env
+
+```env
+REDIS_URL=redis://localhost:6379
+```
+
+---
+
+## 5. Install Dependencies
+
+### Transaction Engine
 
 ```bash
-docker compose up --build
+cd transaction-engine
+npm install
 ```
 
-Services:
+### Fraud Worker
 
-```text
-Backend      : 3000
-Grafana      : 3001
-Prometheus   : 9090
-Redis        : 6379
-```
-
----
-
-## System Components
-
-```text
-backend
-fraud-worker
-postgres
-redis
-prometheus
-grafana
-frontend
+```bash
+cd fraud-worker
+pip install -r requirements.txt
 ```
 
 ---
 
-## Project Highlights
+## 6. Run Services
 
-SentinelLedger demonstrates production-oriented backend engineering concepts including:
+### Start Backend
 
-* Distributed Systems
-* Event-Driven Architecture
-* Redis Streams
-* Consumer Groups
-* Fraud Detection
-* Distributed Locking
-* Idempotency
-* Real-Time Communication
-* Observability
-* Reliability Engineering
-* Double-Entry Accounting
+```bash
+npm run dev
+```
+
+### Start Fraud Worker
+
+```bash
+python worker.py
+```
 
 ---
 
-## Current Status
+# Future Improvements
 
-Implemented:
-
-* Account management
-* Double-entry ledger
-* Transfers
-* Funding operations
-* Fraud detection
-* Automatic blacklisting
-* Redis Streams
-* Consumer Groups
-* Socket.IO events
-* Prometheus metrics
-* Grafana monitoring
-* Worker heartbeat monitoring
-
-Planned:
-
-* Retry Queue
-* Dead Letter Queue
-* Pending Message Recovery
-* Multi-worker scaling
-* Integration testing
+* Docker Compose setup
+* JWT authentication
+* Swagger/OpenAPI documentation
+* k6 load testing
+* Redis consumer groups
+* Retry queues and DLQs
+* Structured logging
+* Monitoring and metrics
 * CI/CD pipelines
-* Stream recovery tooling
+* Kubernetes deployment
 
 ---
 
-## License
+# Why This Project Matters
 
-MIT License
+SentinelLedger focuses on backend engineering concepts commonly used in production-grade financial and distributed systems:
+
+* concurrency control
+* transactional consistency
+* distributed coordination
+* event-driven architecture
+* fraud analytics
+* fault-tolerant design
+
+This project was built to explore systems engineering beyond traditional CRUD applications.
